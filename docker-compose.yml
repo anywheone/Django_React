@@ -1,0 +1,54 @@
+# version: '3.8'
+
+services:
+  django:
+    build:
+      context: ./django
+    container_name: django
+    command: gunicorn --bind 0.0.0.0:8000 myproject.wsgi:application
+    volumes:
+      - ./django:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    environment:
+      DJANGO_SETTINGS_MODULE: myproject.settings
+      DATABASE_URL: postgres://user:password@postgres/dbname
+      REDIS_URL: redis://redis:6379/0
+      BROKER_URL: amqp://rabbitmq:5672/
+
+  react:
+    build:
+      context: ./react/frontend
+    container_name: react
+    ports:
+      - "3000:3000"
+    depends_on:
+      - django
+
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: dbname
+
+  redis:
+    image: redis:latest
+    container_name: redis
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+volumes:
+  postgres_data:
